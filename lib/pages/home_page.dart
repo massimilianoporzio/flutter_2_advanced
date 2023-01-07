@@ -116,7 +116,7 @@ class HomePage extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Text('Completa l\'acquisto (2)'),
+        child: const Text('Completa l\'acquisto (3)'),
       ),
     );
   }
