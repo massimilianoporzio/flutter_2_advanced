@@ -121,7 +121,8 @@ class _HomePageState extends State<HomePage> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: const BorderSide(color: Colors.black12)),
-                    child: const Text('Aggiungi'),
+                    child: Text(
+                        products[index].nelCarrello ? "Rimuovi" : "Aggiungi"),
                   ),
                 ],
               ),
@@ -131,23 +132,40 @@ class _HomePageState extends State<HomePage> {
       });
 
   Widget floatingCheckoutButton(BuildContext context) {
-    return Positioned(
-      left: 16,
-      right: 16,
-      bottom: 32,
-      child: MaterialButton(
-        elevation: 0,
-        onPressed: () {
-          Navigator.pushNamed(context, CheckoutPage.routeName);
-        },
-        minWidth: double.infinity,
-        height: 50,
-        color: Colors.yellow.shade700,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Text('Completa l\'acquisto (3)'),
-      ),
-    );
+    return BlocBuilder<ShoppingCartBloc, ShoppingCartBlocState>(
+        builder: (context, state) {
+      if (state is ShoppingCartBlocStateLoading) {
+        return const SizedBox(); //*NON MOSTRO NULLA
+      } else {
+        //* recupero i prodotti
+        final products = (state as ShoppingCartBlocStateLoaded).products;
+        final productsNelCarrello = products.where(
+          (element) => element.nelCarrello,
+        );
+        if (productsNelCarrello.isEmpty) {
+          return const SizedBox(); //*non mostro nulla
+        } else {
+          return Positioned(
+            left: 16,
+            right: 16,
+            bottom: 32,
+            child: MaterialButton(
+              elevation: 0,
+              onPressed: () {
+                Navigator.pushNamed(context, CheckoutPage.routeName);
+              },
+              minWidth: double.infinity,
+              height: 50,
+              color: Colors.yellow.shade700,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child:
+                  Text('Completa l\'acquisto (${productsNelCarrello.length})'),
+            ),
+          );
+        } // nel carrello ci sono prodotti
+      } // is loaded
+    });
   }
 }
