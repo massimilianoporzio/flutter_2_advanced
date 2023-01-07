@@ -116,7 +116,12 @@ class _HomePageState extends State<HomePage> {
                     height: 4,
                   ),
                   MaterialButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      //*emetto evento
+                      BlocProvider.of<ShoppingCartBloc>(context).add(
+                          ShoppingCartBlockEventToggle(
+                              product: products[index]));
+                    },
                     minWidth: double.infinity,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),

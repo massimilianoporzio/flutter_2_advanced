@@ -8,7 +8,7 @@ class ProductModel {
     required this.imageUrl,
     required this.name,
     required this.price,
-    this.nelCarrello = true,
+    this.nelCarrello = false,
   });
 }
 
