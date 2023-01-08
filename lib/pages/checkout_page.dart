@@ -1,4 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_2_advanced/bloc/shopping_cart_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:collection/collection.dart';
 
 class CheckoutPage extends StatelessWidget {
   static String routeName = "/checkout";
@@ -6,12 +11,25 @@ class CheckoutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        backgroundColor: Colors.grey.shade100,
-        appBar: appBar(),
-        body: CustomScrollView(
-          slivers: [sectionProductList(), sectionCostRecap()],
-        ));
+    //*metto in ascolto di un bloc
+
+    return BlocListener<ShoppingCartBloc, ShoppingCartBlocState>(
+      listener: (context, state) {
+        final productsNelCarrello = (state as ShoppingCartBlocStateLoaded)
+            .products
+            .where((element) => element.nelCarrello)
+            .toList();
+        if (productsNelCarrello.isEmpty) {
+          Navigator.of(context).pop(); //*torno indietro
+        }
+      },
+      child: Scaffold(
+          backgroundColor: Colors.grey.shade100,
+          appBar: appBar(),
+          body: CustomScrollView(
+            slivers: [sectionProductList(), sectionCostRecap()],
+          )),
+    );
   }
 
   AppBar appBar() {
@@ -27,71 +45,115 @@ class CheckoutPage extends StatelessWidget {
     );
   }
 
-  Widget sectionProductList() => SliverList(
-        delegate: SliverChildBuilderDelegate(
-            (context, index) => Container(
-                  margin: EdgeInsets.only(bottom: 4),
-                  color: Colors.white,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      radius: 30,
-                      backgroundImage: NetworkImage(
-                          "https://media-assets.lacucinaitaliana.it/photos/61faedbf9a137a03216d9230/master/pass/carbonarachallenge2.jpg"),
+  Widget sectionProductList() =>
+      BlocBuilder<ShoppingCartBloc, ShoppingCartBlocState>(
+          builder: (context, state) {
+        if (state is ShoppingCartBlocStateLoading) {
+          return Center(
+            child: CircularProgressIndicator(color: Colors.amber.shade700),
+          );
+        } else {
+          final products = (state as ShoppingCartBlocStateLoaded).products;
+          final productsNelCarrello = products
+              .where(
+                (element) => element.nelCarrello,
+              )
+              .toList();
+          return SliverList(
+            delegate: SliverChildBuilderDelegate(
+                (context, index) => Container(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      color: Colors.white,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          radius: 30,
+                          backgroundImage:
+                              NetworkImage(productsNelCarrello[index].imageUrl),
+                        ),
+                        title: Text(
+                          productsNelCarrello[index].name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                            "€ ${productsNelCarrello[index].price.toStringAsFixed(2)}"),
+                        trailing: IconButton(
+                          onPressed: () {
+                            BlocProvider.of<ShoppingCartBloc>(context).add(
+                                ShoppingCartBlockEventToggle(
+                                    product: productsNelCarrello[index]));
+                          },
+                          icon: const Icon(Icons.remove_circle_outline),
+                        ),
+                      ),
                     ),
-                    title: Text(
-                      "Pasta alla carbonara",
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text("€ 7.00"),
-                    trailing: IconButton(
-                      onPressed: () {},
-                      icon: Icon(Icons.remove_circle_outline),
-                    ),
-                  ),
-                ),
-            childCount: 3),
-      );
+                childCount: productsNelCarrello.length),
+          );
+        } //stato LOADED
+      });
 
   Widget sectionCostRecap() {
-    return SliverToBoxAdapter(
-        child: Column(
-      children: [
-        const CheckoutRow(
-          text: "Sottototale",
-          value: 7.0,
-        ),
-        const CheckoutRow(
-          text: "Tasse",
-          value: 1.414,
-        ),
-        ListTile(
-          dense: true,
-          title: Text(
-            "Totale",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          trailing: Text(
-            "€ 8.40",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: MaterialButton(
-            elevation: 0,
-            onPressed: () {},
-            minWidth: double.infinity,
-            height: 50,
-            color: Colors.yellow.shade700,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+    return BlocBuilder<ShoppingCartBloc, ShoppingCartBlocState>(
+      builder: (context, state) {
+        if (state is ShoppingCartBlocStateLoading) {
+          return Center(
+            child: CircularProgressIndicator(color: Colors.amber.shade700),
+          );
+        } else {
+          final productsNelCarrello = (state as ShoppingCartBlocStateLoaded)
+              .products
+              .where((element) => element.nelCarrello)
+              .toList();
+          final subTotale = productsNelCarrello
+              .map(
+                (e) => e.price,
+              )
+              .sum;
+          final tasse = subTotale * 0.22;
+          final totale = subTotale + tasse;
+          return SliverToBoxAdapter(
+            child: Column(
+              children: [
+                CheckoutRow(
+                  text: "Sottototale",
+                  value: subTotale,
+                ),
+                CheckoutRow(
+                  text: "Tasse",
+                  value: tasse,
+                ),
+                ListTile(
+                  dense: true,
+                  title: const Text(
+                    "Totale",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  trailing: Text(
+                    "€ ${totale.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: MaterialButton(
+                    elevation: 0,
+                    onPressed: () {},
+                    minWidth: double.infinity,
+                    height: 50,
+                    color: Colors.yellow.shade700,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Text('Acquista'),
+                  ),
+                ),
+              ],
             ),
-            child: const Text('Acquista'),
-          ),
-        ),
-      ],
-    ));
+          );
+        } //loaded
+      },
+    );
   }
 }
 
